@@ -1,0 +1,15 @@
+{
+    "short_name": "MyRadioCalculator",
+    "name": "MyRadioCalculator",
+    "display": "standalone",
+    "start_url": "/MyRadioCalculator/index.html",
+    "icons": [
+      {
+        "src": "maskable_icon_x192.png",
+        "type": "image/png",
+        "sizes": "192x192"
+      }
+    ],
+    "background_color": "#ffffff",
+    "scope": "/MyRadioCalculator/"
+}
