@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyRadioCalculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <link rel="shortcut icon" href="maskable_icon_x192.png">
+    <style>
+    </style>
+</head>
+
+<body>
+    <main class="container" id="app">
+        <section class="row g-3">
+            <label class="col-auto">
+                <span>Частота (КГц)</span>
+                <input type="number" class="form-control" v-model="f">
+            </label>
+            <label class="col-auto">
+                <span>Длинна волны (м)</span>
+                <input type="number" class="form-control" v-model="w">
+            </label>
+        </section>
+        <section class="row g-3">
+            <label class="col-auto">
+                <span>Сопротивление катушки (Ом)</span>
+                <input type="number" class="form-control" v-model="rl">
+            </label>
+            <label class="col-auto">
+                <span>Добротность</span>
+                <input type="number" class="form-control" v-model="q">
+            </label>
+        </section>
+        <section class="row g-3">
+            <span style="display: flex; justify-content: space-around;">
+                <span>C:</span>
+                <span v-text="c">0</span>
+                <span>(пФ)</span>
+                <span>L:</span>
+                <span v-text="L"></span>
+                <span>(пГн)</span>
+            </span>
+        </section>
+        <section class="row g-3">
+            <label class="col-auto">
+                <span>Длинна катушки (см)</span>
+                <input type="number" class="form-control" v-model="l">
+            </label>
+            <label class="col-auto">
+                <span>Диаметер катушки (см)</span>
+                <input type="number" class="form-control" v-model="d">
+            </label>
+            <!--select class="col-auto form-select" style="max-width: max-content;">
+                <option value="0">No Core</option>
+                <option value="1">Ferrite core</option>
+              </select-->
+        </section>
+        <section class="row g-3">
+            <span style="display: flex; justify-content: space-around;">
+                <span>Количество витков:</span>
+                <span v-text="n"></span>
+            </span>
+        </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.10/dist/vue.global.prod.js"></script>
+    <script>
+        const Pi = 3.141592653589793;
+        const speedOfLlight = 299792; // (m*kh)
+        const vue = Vue.createApp({
+            data: () => ({
+                f: 1, w: 1, rl: 1, q: 1, l: 1, d: 1,
+            }),
+            computed: {
+                L: vm => Math.round((vm.rl * 10 ** 9) / (2 * Pi * vm.f * vm.q)),
+                c: vm => Math.round(vm.L * (vm.q / vm.rl) ** 2),
+                n: vm => Math.round((10 ** -3 * vm.L * (45 * vm.d + 100 * vm.l) ** 2) / vm.d),
+            },
+            watch: {
+                f(val) { this.w = speedOfLlight / val },
+                w(val) { this.f = speedOfLlight / val },
+            },
+        }).mount("#app");;
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+    <script>
+        navigator.serviceWorker.register('sw.js', { scope: '/MyRadioCalculator/' });
+    </script>
+</body>
+
+</html>
