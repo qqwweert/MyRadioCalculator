@@ -14,74 +14,78 @@
 </head>
 
 <body>
-    <main class="container" id="app">
-        <section class="row g-3">
+    <header class="navbar bg-light">
+        <div class="container">
+            <span class="navbar-brand">MyRadioCalculator</span>            
+        </div>
+    </header>
+    <main class="container text-center" id="app">
+        <section class="row g-3 justify-content-center">
             <label class="col-auto">
                 <span>Частота (КГц)</span>
-                <input type="number" class="form-control" v-model="f">
+                <input type="number" max="1000000000000" min="0" class="form-control" v-model="f">
             </label>
             <label class="col-auto">
                 <span>Длинна волны (м)</span>
-                <input type="number" class="form-control" v-model="w">
+                <input type="number" max="1000000000000" min="0" class="form-control" v-model="w">
             </label>
         </section>
-        <section class="row g-3">
+        <section class="row g-3 justify-content-center">
             <label class="col-auto">
-                <span>Сопротивление катушки (Ом)</span>
-                <input type="number" class="form-control" v-model="rl">
+                <span>Q</span>
+                <input type="number" max="1000" min="0" class="form-control" v-model="q">
             </label>
             <label class="col-auto">
-                <span>Добротность</span>
-                <input type="number" class="form-control" v-model="q">
+                <span>Уд. соп. (Ом/m)</span>
+                <input type="number"  max="1000000" min="0" class="form-control" v-model="res">
+            </label>
+            <label class="col-auto">
+                <span>D (мм)</span>
+                <input type="number" max="10000" min="0" class="form-control" v-model="d">
+            </label>
+            <label class="col-auto">
+                <span>S (мм2)</span>
+                <input type="number" max="10000" min="0" class="form-control" v-model="s">
             </label>
         </section>
-        <section class="row g-3">
-            <span style="display: flex; justify-content: space-around;">
-                <span>C:</span>
-                <span v-text="c">0</span>
-                <span>(пФ)</span>
-                <span>L:</span>
-                <span v-text="L"></span>
-                <span>(пГн)</span>
-            </span>
-        </section>
-        <section class="row g-3">
-            <label class="col-auto">
-                <span>Длинна катушки (см)</span>
-                <input type="number" class="form-control" v-model="l">
-            </label>
-            <label class="col-auto">
-                <span>Диаметер катушки (см)</span>
-                <input type="number" class="form-control" v-model="d">
-            </label>
-            <!--select class="col-auto form-select" style="max-width: max-content;">
-                <option value="0">No Core</option>
-                <option value="1">Ferrite core</option>
-              </select-->
-        </section>
-        <section class="row g-3">
-            <span style="display: flex; justify-content: space-around;">
-                <span>Количество витков:</span>
-                <span v-text="n"></span>
-            </span>
+        <section class="row g-3 mt-2">
+            <div>Параметры катушки</div>
+            <div v-text="`l: ${l} (м)`"></div>
+            <div v-text="`N: ${N}`"></div>  
+            <div v-text="`R: ${rL} (Ом)`"></div>
+            <div>Параметры контура </div>
+            <div v-text="`L: ${L} (Гн)`"></div>
+            <div v-text="`C: ${C} (Ф)`"></div>  
+            <div v-text="`Rрез: ${rr} (Ом)`"></div>
         </section>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.10/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/decimal.js-light@2/decimal.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
     <script>
+        Decimal.config({ precision: 25 });
         const Pi = 3.141592653589793;
-        const speedOfLlight = 299792; // (m*kh)
+        const speedOfLlight = 299792000; // (m*h)
+        function findl(f, q, d, res) {
+            const temp1 = new Decimal(9 * 10 ** 5).times(res).times(d);
+            const temp2 = new Decimal(Pi).times(Pi).times(f).times(q).times(d).times(d);
+            const temp3 = new Decimal(18 * 10 ** 6).times(res);
+            return temp1.dividedBy(temp2.minus(temp3));
+        };
         const vue = Vue.createApp({
             data: () => ({
-                f: 1, w: 1, rl: 1, q: 1, l: 1, d: 1,
+                f: 1, w: 1, q: 1, d: 1, res: 1, s: 1,
             }),
             computed: {
-                L: vm => Math.round((vm.rl * 10 ** 9) / (2 * Pi * vm.f * vm.q)),
-                c: vm => Math.round(vm.L * (vm.q / vm.rl) ** 2),
-                n: vm => Math.round((10 ** -3 * vm.L * (45 * vm.d + 100 * vm.l) ** 2) / vm.d),
+                l: vm => findl(vm.f * 1000, vm.q, vm.d / 1000, vm.res),
+                rL: vm => vm.l.times(vm.res).times(vm.s / 1000000),
+                N: vm => vm.l.dividedBy(2 * (new Decimal(vm.s / 1000000).dividedBy(Pi).toPower(0.5))),
+                rr: vm => vm.rL.dividedBy(new Decimal(vm.q).toPower(2)),
+                L: vm => vm.rL.dividedBy(new Decimal(2).times(Pi).times(vm.f).times(vm.q)),
+                C: vm => vm.L.times(new Decimal(vm.q).dividedBy(vm.rL)).toPower(2),
             },
             watch: {
-                f(val) { this.w = speedOfLlight / val },
-                w(val) { this.f = speedOfLlight / val },
+                f(val) { this.w = speedOfLlight / (val * 1000) },
+                w(val) { this.f = Math.round( speedOfLlight / val) / 1000 },
             },
         }).mount("#app");;
 
