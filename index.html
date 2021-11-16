@@ -32,31 +32,20 @@
         </section>
         <section class="row g-3 justify-content-center">
             <label class="col-auto">
-                <span>Q</span>
-                <input type="number" max="1000" min="0" class="form-control" v-model="q">
-            </label>
-            <label class="col-auto">
-                <span>Уд. соп. (Ом/m)</span>
-                <input type="number"  max="1000000" min="0" class="form-control" v-model="res">
-            </label>
-            <label class="col-auto">
                 <span>D (мм)</span>
-                <input type="number" max="10000" min="0" class="form-control" v-model="d">
+                <input type="number" max="10000" min="0" class="form-control" v-model="D">
             </label>
             <label class="col-auto">
-                <span>S (мм2)</span>
-                <input type="number" max="10000" min="0" class="form-control" v-model="s">
+                <span>d (мм)</span>
+                <input type="number" max="10000" min="0" class="form-control" v-model="d">
             </label>
         </section>
         <section class="row g-3 mt-2">
             <div>Параметры катушки</div>
-            <div v-text="`l: ${l} (м)`"></div>
-            <div v-text="`N: ${N}`"></div>  
-            <div v-text="`R: ${rL} (Ом)`"></div>
+            <div v-text="`N: ${N}`"></div>
             <div>Параметры контура </div>
-            <div v-text="`L: ${L} (Гн)`"></div>
-            <div v-text="`C: ${C} (Ф)`"></div>  
-            <div v-text="`Rрез: ${rr} (Ом)`"></div>
+            <div v-text="`L: ${L * 10 ** 6} (мкГн)`"></div>
+            <div v-text="`C: ${C * 10 ** 12} (пФ)`"></div>
         </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/decimal.js-light@2/decimal.min.js"></script>
@@ -65,23 +54,31 @@
         Decimal.config({ precision: 25 });
         const Pi = 3.141592653589793;
         const speedOfLlight = 299792000; // (m*h)
+        const LCn = 100000;
         function findl(f, q, d, res) {
-            const temp1 = new Decimal(9 * 10 ** 5).times(res).times(d);
+            const temp1 = new Decimal("9e5").times(res).times(d);
             const temp2 = new Decimal(Pi).times(Pi).times(f).times(q).times(d).times(d);
-            const temp3 = new Decimal(18 * 10 ** 6).times(res);
+            const temp3 = new Decimal("2e6").times(res);
             return temp1.dividedBy(temp2.minus(temp3));
         };
         const vue = Vue.createApp({
             data: () => ({
-                f: 1, w: 1, q: 1, d: 1, res: 1, s: 1,
+                f: 1, w: 1, d: 1, D: 10,
             }),
             computed: {
-                l: vm => findl(vm.f * 1000, vm.q, vm.d / 1000, vm.res),
-                rL: vm => vm.l.times(vm.res).times(vm.s / 1000000),
-                N: vm => vm.l.dividedBy(2 * (new Decimal(vm.s / 1000000).dividedBy(Pi).toPower(0.5))),
-                rr: vm => vm.rL.dividedBy(new Decimal(vm.q).toPower(2)),
-                L: vm => vm.rL.dividedBy(new Decimal(2).times(Pi).times(vm.f).times(vm.q)),
-                C: vm => vm.L.times(new Decimal(vm.q).dividedBy(vm.rL)).toPower(2),
+                N(vm) {
+                    const t1 = new Decimal(vm.D  / 10 ** 3).toPower(2).times(81);
+                    const t2 = new Decimal(LCn).toPower(0.5).times(vm.d  / 10 ** 3).times("45e6");
+                    const t3 = Pi * vm.f * vm.D / 10 ** 3;
+                    return Math.round(t2.dividedBy(t3).plus(t1).toPower(0.5).minus(9 * vm.D / 10 ** 3));
+                },
+                L (vm) {
+                    const t1 = new Decimal(vm.D / 10 ** 3).times(vm.N).toPower(2).times("1e-4");
+                    const t2 = new Decimal(vm.D / 10 ** 3).times(45);
+                    const t3 = new Decimal(vm.N).times(vm.d / 10 ** 3).times(100);
+                    return t1.dividedBy(t2.plus(t3));
+                },
+                C: vm => vm.L.dividedBy(LCn),
             },
             watch: {
                 f(val) { this.w = speedOfLlight / (val * 1000) },
